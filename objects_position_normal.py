@@ -17,8 +17,11 @@ with rep.new_layer():
     cam_position_random = rep.distribution.uniform((0,181,0), (0, 300, 0))
     cam_rotation = (-90,0,0) #(-45,0,0)
     focus_distance = 120
-    focal_length = 11.4
-    f_stop = 30
+    focus_distance2 = 72
+    focal_length = 19.1
+    focal_length2 = 7.5
+    f_stop = 1.8
+    f_stop2 = 1.8
     focus_distance_random = rep.distribution.normal(500.0, 100)
 
     # Cultery path 
@@ -77,7 +80,7 @@ with rep.new_layer():
 
     # Multiple setup cameras and attach it to render products
     camera = rep.create.camera(focus_distance=focus_distance, focal_length=focal_length, position=cam_position, rotation=cam_rotation, f_stop=f_stop)
-    camera2 = rep.create.camera(focus_distance=focus_distance, focal_length=focal_length, position=cam_position2, rotation=cam_rotation, f_stop=f_stop)
+    camera2 = rep.create.camera(focus_distance=focus_distance2, focal_length=focal_length2, position=cam_position2, rotation=cam_rotation, f_stop=f_stop)
     
     # Will render 1024x1024 images and 512x512 images
     render_product  = rep.create.render_product(camera, (1024, 1024))
@@ -88,7 +91,7 @@ with rep.new_layer():
     writer.initialize(output_dir=f"{local_path}/data/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
-    with rep.trigger.on_frame(num_frames=75):
+    with rep.trigger.on_frame(num_frames=25):
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)
