@@ -2,16 +2,16 @@ import omni.replicator.core as rep
 
 with rep.new_layer():
 
-    stage = omni.usd.get_context().get_stage()
-
     # Load in asset
-    TABLE_USD ="/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_EastRural_Table/EastRural_Table.usd"
-    SPOON_SMALL_USD = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_Spoon_Small/Spoon_Small.usd"
-    SPOON_BIG_USD = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_Spoon_Big/Spoon_Big.usd"
-    FORK_SMALL_USD = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_Fork_Small/Forked_Small.usd"
-    FORK_BIG_USD = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_Fork_Big/Fork_Big.usd"
-    KNIFE_USD = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/asset/Collected_Knife/Knife.usd"
+    local_path = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/"
+    TABLE_USD =f"{local_path}/asset/Collected_EastRural_Table/EastRural_Table.usd"
+    SPOON_SMALL_USD = f"{local_path}/asset/Collected_Spoon_Small/Spoon_Small.usd"
+    SPOON_BIG_USD = f"{local_path}/asset/Collected_Spoon_Big/Spoon_Big.usd"
+    FORK_SMALL_USD = f"{local_path}/asset/Collected_Fork_Small/Forked_Small.usd"
+    FORK_BIG_USD = f"{local_path}/asset/Collected_Fork_Big/Fork_Big.usd"
+    KNIFE_USD = f"{local_path}/asset/Collected_Knife/Knife.usd"
 
+    # Camera paramters
     cam_position = (-131,200,-134)
     cam_position2 = (-131,120,-134)
     cam_position_random = rep.distribution.uniform((0,181,0), (0, 300, 0))
@@ -20,7 +20,9 @@ with rep.new_layer():
     focal_length = 11.4
     f_stop = 30
     focus_distance_random = rep.distribution.normal(500.0, 100)
-    current_cultery = FORK_BIG_USD
+
+    # Cultery path 
+    current_cultery = FORK_BIG_USD # Change the item here e.g SPOON_SMALL_USD
     output_path = current_cultery.split(".")[0].split("/")[-1]
 
     def rect_lights(num=2):
@@ -42,7 +44,6 @@ with rep.new_layer():
             intensity=rep.distribution.normal(0, 1000),
             position=(0,0,0),
             rotation=(270,0,0),
-            # scale=rep.distribution.uniform(50, 100),
             count=num
         )
         return lights.node 
@@ -57,14 +58,14 @@ with rep.new_layer():
             )
         return table 
     
-    def cutlery_props(size=50):
+    # Define randomizer function for CULTERY assets. This randomization includes placement and rotation of the assets on the surface.
+    def cutlery_props(size=15):
         instances = rep.randomizer.instantiate(rep.utils.get_usd_files(current_cultery), size=size, mode='point_instance')
-        # instances = rep.randomizer.instantiate(rep.utils.get_usd_files(FORK_BIG_USD, recursive=True), size=size, mode='point_instance') #scene_instance.
 
         with instances:
             rep.modify.pose(
                 position=rep.distribution.uniform((-212, 76.2, -187), (-62, 76.2, -94)),
-                rotation=rep.distribution.uniform((-90,-180, -90), (90, 180, 90)),
+                rotation=rep.distribution.uniform((-90,-180, 0), (-90, 180, 0)),
             )
         return instances.node
 
@@ -84,10 +85,10 @@ with rep.new_layer():
 
     # Initialize and attach writer
     writer = rep.WriterRegistry.get("BasicWriter")
-    writer.initialize(output_dir=f"/home/george/Documents/omniverse_ei/storage/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
+    writer.initialize(output_dir=f"{local_path}/data/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
-    with rep.trigger.on_frame(num_frames=20):
+    with rep.trigger.on_frame(num_frames=75):
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)
