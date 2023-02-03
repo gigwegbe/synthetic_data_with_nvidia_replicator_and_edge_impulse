@@ -7,15 +7,16 @@ with rep.new_layer():
     TABLE_USD =f"{local_path}/asset/Collected_EastRural_Table/EastRural_Table.usd"
     SPOON_SMALL_USD = f"{local_path}/asset/Collected_Spoon_Small/Spoon_Small.usd"
     SPOON_BIG_USD = f"{local_path}/asset/Collected_Spoon_Big/Spoon_Big.usd"
-    FORK_SMALL_USD = f"{local_path}/asset/Collected_Fork_Small/Forked_Small.usd"
+    FORK_SMALL_USD = f"{local_path}/asset/Collected_Fork_Small/Fork_Small.usd"
     FORK_BIG_USD = f"{local_path}/asset/Collected_Fork_Big/Fork_Big.usd"
     KNIFE_USD = f"{local_path}/asset/Collected_Knife/Knife.usd"
+
 
     # Camera paramters
     cam_position = (-131,200,-134)
     cam_position2 = (-131,120,-134)
     cam_position_random = rep.distribution.uniform((0,181,0), (0, 300, 0))
-    cam_rotation = (-90,0,0) #(-45,0,0)
+    cam_rotation = (-60,0,0) #(-45,0,0)
     focus_distance = 120
     focus_distance2 = 72
     focal_length = 19.1
@@ -25,7 +26,7 @@ with rep.new_layer():
     focus_distance_random = rep.distribution.normal(500.0, 100)
 
     # Cultery path 
-    current_cultery = FORK_BIG_USD # Change the item here e.g SPOON_SMALL_USD
+    current_cultery = SPOON_SMALL_USD # Change the item here e.g KNIFE_USD
     output_path = current_cultery.split(".")[0].split("/")[-1]
 
     def rect_lights(num=2):
@@ -88,10 +89,10 @@ with rep.new_layer():
 
     # Initialize and attach writer
     writer = rep.WriterRegistry.get("BasicWriter")
-    writer.initialize(output_dir=f"{local_path}/data/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
+    writer.initialize(output_dir=f"{local_path}/data/normal_60/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
-    with rep.trigger.on_frame(num_frames=25):
+    with rep.trigger.on_frame(num_frames=50):
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)

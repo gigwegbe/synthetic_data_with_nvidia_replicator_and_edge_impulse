@@ -1,7 +1,7 @@
 import omni.replicator.core as rep
 
 with rep.new_layer():
-    
+
     # Load in asset
     local_path = "/home/george/Documents/synthetic_data_with_nvidia_replicator_and_edge_impulse/"
     TABLE_USD =f"{local_path}/asset/Collected_EastRural_Table/EastRural_Table.usd"
@@ -10,6 +10,7 @@ with rep.new_layer():
     FORK_SMALL_USD = f"{local_path}/asset/Collected_Fork_Small/Fork_Small.usd"
     FORK_BIG_USD = f"{local_path}/asset/Collected_Fork_Big/Fork_Big.usd"
     KNIFE_USD = f"{local_path}/asset/Collected_Knife/Knife.usd"
+
 
     # Camera paramters
     cam_position = (-131,200,-134)
@@ -64,11 +65,11 @@ with rep.new_layer():
     # Define randomizer function for CULTERY assets. This randomization includes placement and rotation of the assets on the surface.
     def cutlery_props(size=15):
         instances = rep.randomizer.instantiate(rep.utils.get_usd_files(current_cultery), size=size, mode='point_instance')
-      
+
         with instances:
             rep.modify.pose(
-                position=rep.distribution.uniform((-212, 86.2, -187), (-62, 86.2, -94)),
-                rotation=rep.distribution.uniform((-90,-180, -90), (90, 180, 90)),
+                position=rep.distribution.uniform((-212, 76.2, -187), (-62, 76.2, -94)),
+                rotation=rep.distribution.uniform((-90,-180, 0), (-90, 180, 0)),
             )
         return instances.node
 
@@ -81,17 +82,17 @@ with rep.new_layer():
     # Multiple setup cameras and attach it to render products
     camera = rep.create.camera(focus_distance=focus_distance, focal_length=focal_length, position=cam_position, rotation=cam_rotation, f_stop=f_stop)
     camera2 = rep.create.camera(focus_distance=focus_distance2, focal_length=focal_length2, position=cam_position2, rotation=cam_rotation, f_stop=f_stop)
-
+    
     # Will render 1024x1024 images and 512x512 images
     render_product  = rep.create.render_product(camera, (1024, 1024))
     render_product2  = rep.create.render_product(camera2, (512, 512))
 
     # Initialize and attach writer
     writer = rep.WriterRegistry.get("BasicWriter")
-    writer.initialize(output_dir=f"{local_path}/data/random/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
+    writer.initialize(output_dir=f"{local_path}/data/normal/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
-    with rep.trigger.on_frame(num_frames=25):
+    with rep.trigger.on_frame(num_frames=50):
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)
