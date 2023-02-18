@@ -1,0 +1,434 @@
+/******************************************************************************
+ *     Copyright 2022 NVIDIA Corporation. All rights reserved.
+ ******************************************************************************
+ 
+Permission is hereby granted by NVIDIA Corporation ("NVIDIA"), free of charge,
+to any person obtaining a copy of the sample definition code that uses our 
+Material Definition Language (the "MDL Materials"), to reproduce and distribute
+the MDL Materials, including without limitation the rights to use, copy, merge,
+publish, distribute, and sell modified and unmodified copies of the MDL 
+Materials, and to permit persons to whom the MDL Materials is furnished to do
+so, in all cases solely for use with NVIDIA's Material Definition Language,
+subject to the following further conditions:
+
+1. The above copyright notices, this list of conditions, and the disclaimer
+that follows shall be retained in all copies of one or more of the MDL
+Materials, including in any software with which the MDL Materials are bundled,
+redistributed, and/or sold, and included either as stand-alone text files,
+human-readable headers or in the appropriate machine-readable metadata fields
+within text or binary files as long as those fields can be easily viewed by the
+user, as applicable.
+2. The name of NVIDIA shall not be used to promote, endorse or advertise any 
+Modified Version without specific prior written permission, except a) to comply
+ with the notice requirements otherwise contained herein; or b) to acknowledge
+the contribution(s) of NVIDIA.
+
+THE MDL MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT,
+TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR 
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, 
+INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF 
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE
+THE MDL MATERIALS OR FROM OTHER DEALINGS IN THE MDL MATERIALS.
+*/
+
+
+mdl 1.4;
+
+import ::anno::*;
+import ::base::*;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::tex::*;
+import ::nvidia::core_definitions::blend_colors;
+import ::nvidia::core_definitions::dimension;
+
+const string COPYRIGHT = 
+" Copyright 2022 NVIDIA Corporation. All rights reserved.\n"
+" MDL MATERIALS ARE PROVIDED PURSUANT TO AN END USER LICENSE  AGREEMENT,\n"
+" WHICH WAS ACCEPTED IN ORDER TO GAIN ACCESS TO THIS FILE.  IN PARTICULAR,\n" 
+" THE MDL MATERIALS ARE PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\n"
+" EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\n"
+" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF\n" 
+" COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL NVIDIA\n"
+" CORPORATION BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY\n"
+" GENERAL, SPECIAL,  INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN\n"
+" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR\n"
+" INABILITY TO USE THE MDL MATERIALS OR FROM OTHER DEALINGS IN THE MDL MATERIALS.\n";
+
+
+
+
+base::texture_coordinate_info vmat_transform(
+								uniform float2 translation = float2(0.0, 0.0),
+								uniform float rotation     = 0.0,
+								uniform float2 scaling     = float2(1.0, 1.0),
+								uniform ::base::texture_coordinate_system system = ::base::texture_coordinate_uvw,
+								uniform int uv_space       = 0
+)
+{
+	float rotation_rad = (rotation * 3.1415926535897932384626433832f) / 180.f;
+	
+	float4x4 scale =
+	float4x4(1.0 /scaling.x, 0.             ,  0. ,     0.,
+			 0.            , 1.0 /scaling.y ,  0. ,     0.,
+			 0.            , 0.             ,  1.0,     0.,
+			 translation.x , translation.y  ,  0.0,     1.);
+
+    float s = ::math::sin(rotation_rad);
+    float c = ::math::cos(rotation_rad);
+    float4x4 rotate =
+	float4x4(  c  ,  -s   , 0.0 , 0.0,
+			   s  ,   c   , 0.0 , 0.0,
+			   0.0,   0.0 , 1.0 , 0.0,
+			   0. ,   0.0 , 0.0 , 1.);
+	
+	return ::base::transform_coordinate(scale*rotate, ::base::coordinate_source(system, uv_space));
+}
+
+float histogram_range(float input, float range, float position)
+{	
+	float low = ::math::clamp(1.0 - ::math::min(((1.0 - position) + range * 0.5), (1.0 - position) * 2), 0.0, 1.0);
+	float high = ::math::clamp(::math::min((position + range * 0.5 ), position * 2.0), 0.0, 1.0);
+	return ::math::lerp(low, high, input);
+}
+
+float uint2float(int x)
+{
+    return float(x & 0x7FFFFFFF) + (x < 0 ? 2147483648.0 : 0.0);
+}
+
+int lowbias32(int x)
+{
+    x ^= x >>> 16;
+    x *= 0x7feb352d;
+    x ^= x >>> 15;
+    x *= 0x846ca68b;
+    x ^= x >>> 16;
+    return x;
+}
+
+float2 rnd22(int2 p) {
+	float2 ret_val = float2(
+		uint2float(lowbias32(p[0] + lowbias32(p[1]))) / 4294967296.f,
+		uint2float(lowbias32(p[0] + 32000 + lowbias32(p[1]))) / 4294967296.f
+	);
+    return ret_val;
+}    
+
+float3 srgb2rgb(float3 val)
+{
+	return ::math::pow(::math::max(val, float3(0.0f)), 2.2);
+}
+
+float2x2 invert_2x2(float2x2 M)
+{
+	float det = M[0][0]*M[1][1] - M[0][1]*M[1][0];
+	//https://www.chilimath.com/lessons/advanced-algebra/inverse-of-a-2x2-matrix/
+	return (1.0 / det) * float2x2(M[1][1], -M[0][1], -M[1][0], M[0][0]);
+}
+
+float3 nonrepeat_lookup(
+	uniform texture_2d texture = texture_2d(),
+	::base::texture_coordinate_info uvw = ::base::coordinate_source(),
+	float texture_scale = 1.0,
+	float3 average_color = float3(0.5),
+	float patch_size = 8.0
+)
+{
+	
+	float2 uv_in = float2(uvw.position[0], uvw.position[1]) * texture_scale;
+	float Z =  patch_size;     // patch scale inside example texture
+	float CON = 1.0f;
+	
+	float3 O = float3(0.f);
+	float2x2 M0 = float2x2(1.f,0.f, 0.5f, ::math::sqrt(3.f)/2.f);
+	float2x2 M = invert_2x2(M0); // transform matrix <-> tilted space
+	
+	float2 U = uv_in;
+	float2 V = M * uv_in; //pre-tilted hexa coordinates
+	int2 I = int2(::math::floor(V)); // hexa-tile id
+	
+	// The mean color needs to be determined in Photoshop then to make the
+	// average color work out, take the float value and calculate the apropriate
+	// mean value as (value^(1/2.2))
+
+	float3 m = average_color;
+	
+	float3 F = float3(::math::frac(V)[0], ::math::frac(V)[1], 0.f), W;
+	F[2] = 1.0 - F[0] - F[1]; // local hexa coordinates
+	
+	if( F[2] > 0.f )
+
+		O = (W[0] = F[2]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I))) - m*float(CON))
+		  + (W[1] = F[1]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I+int2(0,1)))) - m*float(CON))
+		  + (W[2] = F[0]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I+int2(1,0)))) - m*float(CON));
+	else
+		O = (W[0] =      -F[2]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I+int2(1))))   - m*float(CON))
+	      + (W[1] = 1.f - F[1]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I+int2(1, 0)))) - m*float(CON))
+		  + (W[2] = 1.f - F[0]) * (( ::tex::lookup_float3(texture, U/Z-rnd22(I+int2(0, 1)))) - m*float(CON));
+	O = m + O/::math::length(W);
+	O = ::math::clamp( (O), 0.0, 1.0);
+	
+	return float3(O);
+}
+
+color endless_texture(
+	uniform texture_2d texture = texture_2d(),
+	::base::texture_coordinate_info uvw = ::base::coordinate_source(),
+	float texture_scale = 10.0,
+	float3 average_color = float3(0.5, 0.5, 1.0),
+	float patch_size = 8.0,
+	bool gamma_correct_lookup = true
+)
+{
+	return gamma_correct_lookup ? color(srgb2rgb(
+			nonrepeat_lookup (
+				texture: texture,
+				uvw: uvw,
+				texture_scale: texture_scale,
+				average_color: average_color,
+				patch_size: patch_size
+			))
+		) : color(nonrepeat_lookup (
+			texture: texture,
+			uvw: uvw,
+			texture_scale: texture_scale,
+			average_color: average_color,
+			patch_size: patch_size
+		));
+}
+
+float3 endless_normal(
+	uniform texture_2d texture = texture_2d(),
+	float factor = 1.0,
+	bool flip_tangent_u = false,
+	bool flip_tangent_v = false,
+	::base::texture_coordinate_info uvw = ::base::coordinate_source(),
+	float texture_scale = 1.0,
+	float3 average_color = float3(0.5, 0.5, 1.0),
+	float patch_size = 8.0
+)
+{
+	float3 transformed_tangent_u = flip_tangent_u ? uvw.tangent_u : - uvw.tangent_u;
+    float3 transformed_tangent_v = flip_tangent_v ? uvw.tangent_v : - uvw.tangent_v;
+	
+	if (flip_tangent_u)
+		transformed_tangent_u=-transformed_tangent_u;
+	if (flip_tangent_v)
+		transformed_tangent_v=-transformed_tangent_v;
+
+	// normalized Lookup
+	float3 tangent_space_normal =
+         (nonrepeat_lookup (
+			texture: texture,
+			uvw: uvw,
+			texture_scale: texture_scale,
+			average_color: average_color,
+			patch_size: patch_size
+		) - 0.5) * (2.0 * factor);
+		
+	 return ::math::normalize(uvw.tangent_u * tangent_space_normal.x +
+          uvw.tangent_v * tangent_space_normal.y +
+          ::state::normal()*1.0); 
+}
+
+float3 normalmap_normal(
+	uniform texture_2d texture,
+	float factor = 1.0,
+	::base::texture_coordinate_info uvw = ::base::texture_coordinate_info()
+)
+{
+	float3 lookup = (::tex::lookup_float3(texture, float2(uvw.position.x, uvw.position.y)) - 0.5) * (factor * 2.0);
+	return ::math::normalize(uvw.tangent_u * lookup.x + uvw.tangent_v * lookup.y + ::state::normal());
+}
+
+
+export material Laminate_Oak(
+    uniform bool enable_infinite_tiling = false [[
+        ::anno::description("Enables Infinite Tiling feature. Removes artifacts of repeating texture patterns when material is scaled"),
+		 ::anno::display_name("Infinite Tiling"),
+		 ::anno::in_group("Appearance")
+    ]],
+    float wood_brightness = 0.7f [[
+        ::anno::description("Adjusts the brightness of the wood material"),
+        ::anno::display_name("Wood Brightness"),
+		::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance")
+    ]],
+    float wood_fiber_roughness = 1.0f [[
+        ::anno::description("Adjusts the roughness of the fibers. Lower values cause a more anisotropic appearance of the reflections"),
+        ::anno::display_name("Wood Fiber Roughness"),
+		::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance")
+    ]],
+	float oak_bump_factor = 1.f [[
+        ::anno::display_name("Oak Bump Factor"),
+		::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance")
+    ]],
+    float smudges_weight = 0.08f [[
+        ::anno::description("Adds smudges on top of the material to create a more worn and used appearance of the material"),
+        ::anno::display_name("Smudges Weight"),
+        ::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance", "Wear")
+    ]],
+    float smudges_roughness = 0.68 [[
+        ::anno::description("Adjusts the roughness of the smudges on top of the material"),
+        ::anno::display_name("Smudges Roughness"),
+		::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance", "Wear")
+    ]],
+    float dirt_weight = 0.f [[
+        ::anno::description("Adjusts the thickness of the dirt layer on top of the material "),
+        ::anno::display_name("Dirt Thickness"),
+		::anno::hard_range(0.f, 1.f),
+        ::anno::in_group("Appearance", "Wear")
+    ]],
+    uniform float2 texture_translate = float2(0.f) [[
+        ::anno::description("Offsets the position of the material"),
+        ::anno::display_name("Translate"),
+        ::anno::in_group("Transform")
+    ]],
+    uniform float texture_rotate = 0.f [[
+        ::anno::description("Rotates the material"),
+        ::anno::display_name("Rotate"),
+        ::anno::in_group("Transform")
+    ]],
+    uniform float2 texture_scale = float2(1.f) [[
+        ::anno::description("Scales the material"),
+        ::anno::display_name("Scale"),
+		::nvidia::core_definitions::dimension(float2(1.0f, 1.0f)),
+        ::anno::in_group("Transform")
+    ]],
+    uniform int uv_space_index = 0 [[
+        ::anno::description("Selects the UV texture space index to use for the material"),
+        ::anno::display_name("UV Space Index"),
+        ::anno::in_group("Advanced")
+    ]]
+)
+[[
+	::anno::author("NVIDIA vMaterials"),
+    ::anno::display_name("Wood Laminate Oak - New"),
+    ::anno::description("A wood laminate material that features infinite tiling, smudges and a dirt layer"),
+	::anno::key_words(string[]("aec", "wood", "oak", "laminate", "floor", "polished", "artificial", "infinite tiling", "new", "brown")),
+	::anno::thumbnail("./.thumbs/Laminate_Oak.Laminate_Oak.png"),
+	::anno::copyright_notice(COPYRIGHT)
+]]
+ = 
+    let {
+        bool tmp0 = false;
+        material_surface tmp1(
+            ::df::weighted_layer(histogram_range(1.f - float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[0], 1.f, ::math::lerp(1.f, 0.721000016f, dirt_weight)), ::df::custom_curve_layer(0.0410000011f, 1.f, 5.f, smudges_weight, ::df::microfacet_ggx_smith_bsdf(histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[0], 0.34800002f, ::math::lerp(0.300000012f, 0.649999976f, smudges_roughness)) * histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[0], 0.34800002f, ::math::lerp(0.300000012f, 0.649999976f, smudges_roughness)), histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[0], 0.34800002f, ::math::lerp(0.300000012f, 0.649999976f, smudges_roughness)) * histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[0], 0.34800002f, ::math::lerp(0.300000012f, 0.649999976f, smudges_roughness)), color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::custom_curve_layer(0.0410000011f, 1.f, 5.f, 1.f, ::df::microfacet_ggx_smith_bsdf(histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[1], 0.445000023f, 0.398000032f) * histogram_range(float3(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.579999983f, 0.537f, 0.f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_multi_R_rough_G_aniso.jpg", ::tex::gamma_linear), color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint)[1], 0.445000023f, 0.398000032f), ::math::lerp(0.206000015f, 0.382000029f, wood_fiber_roughness) * ::math::lerp(0.206000015f, 0.382000029f, wood_fiber_roughness), color(0.491905004f, 0.491905004f, 0.491905004f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::diffuse_reflection_bsdf(::nvidia::core_definitions::blend_colors(enable_infinite_tiling ? endless_texture(texture_2d("./textures/laminate_oak_diffuse.jpg", ::tex::gamma_linear), vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.611000001f, 0.451999992f, 0.287f), 8.f, true) : ::base::file_texture(texture_2d("./textures/laminate_oak_diffuse.jpg", ::tex::gamma_srgb), color(0.f, 0.f, 0.f), color(0.767768979f, 0.767768979f, 0.767768979f), ::base::mono_alpha, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint, color(::math::lerp(0.75f, 1.f, wood_brightness)), ::base::color_layer_multiply, 1.f).tint, 0.f, ""), ::state::normal()), ::state::normal()), ::df::diffuse_reflection_bsdf(color(0.0782879964f, 0.0712279975f, 0.0564489998f), 0.f, ""), ::state::normal()),
+            material_emission(emission: edf(), intensity: color(0.f, 0.f, 0.f), mode: intensity_radiant_exitance));
+        material_surface tmp2 = material_surface(scattering: bsdf(), emission: material_emission(emission: edf(), intensity: color(0.f, 0.f, 0.f), mode: intensity_radiant_exitance));
+        color tmp3 = color(1.f, 1.f, 1.f);
+        material_volume tmp4 = material_volume(scattering: vdf(), absorption_coefficient: color(0.f, 0.f, 0.f), scattering_coefficient: color(0.f, 0.f, 0.f));
+        material_geometry tmp5(
+            float3(0.f),
+            1.f,
+            enable_infinite_tiling ? endless_normal(texture_2d("./textures/laminate_oak_normal.jpg", ::tex::gamma_linear), oak_bump_factor, false, false, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index), 10.f, float3(0.5f, 0.5f, 1.f), 8.f) : normalmap_normal(texture_2d("./textures/laminate_oak_normal.jpg", ::tex::gamma_linear), oak_bump_factor, vmat_transform(texture_translate, texture_rotate, texture_scale, ::base::texture_coordinate_uvw, uv_space_index)));
+    } in
+        material(
+            thin_walled: tmp0,
+            surface: tmp1,
+            backface: tmp2,
+            ior: tmp3,
+            volume: tmp4,
+            geometry: tmp5);
+
+
+export material Laminate_Oak_Polished(*)
+[[
+	::anno::author("NVIDIA vMaterials"),
+    ::anno::display_name("Wood Laminate Oak - Polished"),
+    ::anno::description("A wood laminate material with smudges and a dirt layer that features infinite tiling "),
+	::anno::key_words(string[]("aec", "wood", "oak", "laminate", "floor", "polished", "artificial", "infinite tiling", "dust", "dirt", "brown", "warm")),
+	::anno::thumbnail("./.thumbs/Laminate_Oak.Laminate_Oak_Polished.png"),
+	::anno::copyright_notice(COPYRIGHT)
+]] = Laminate_Oak(
+	enable_infinite_tiling: false,
+	wood_brightness:		0.7f,
+	wood_fiber_roughness: 1.0f,
+	oak_bump_factor: 0.5f,
+	smudges_weight: 0.0f,
+	smudges_roughness: 0.0f,
+	dirt_weight: 0.0f,
+	texture_translate: float2(0.0f),
+	texture_rotate: 0.0f,
+	texture_scale: float2(1.0),
+	uv_space_index: 0
+);
+
+export material Laminate_Oak_Slight_Smudges(*)
+[[
+	::anno::author("NVIDIA vMaterials"),
+    ::anno::display_name("Wood Laminate Oak - Smudges"),
+    ::anno::description("A wood laminate material with smudges and a dirt layer that features infinite tiling "),
+	::anno::key_words(string[]("aec", "wood", "oak", "laminate", "floor", "polished", "artificial", "infinite tiling", "smudges", "dust", "dirt", "brown", "warm")),
+	::anno::thumbnail("./.thumbs/Laminate_Oak.Laminate_Oak_Slight_Smudges.png"),
+	::anno::copyright_notice(COPYRIGHT)
+]]
+ = Laminate_Oak(
+	enable_infinite_tiling: false,
+	wood_brightness:		0.7f,
+	wood_fiber_roughness: 1.0f,
+	oak_bump_factor: 1.0f,
+	smudges_weight: 0.8f,
+	smudges_roughness: 0.75f,
+	dirt_weight: 0.5f,
+	texture_translate: float2(0.0f),
+	texture_rotate: 0.0f,
+	texture_scale: float2(1.0),
+	uv_space_index: 0
+);
+
+export material Laminate_Oak_Dirty(*)
+[[
+	::anno::author("NVIDIA vMaterials"),
+    ::anno::display_name("Wood Laminate Oak - Dirty"),
+    ::anno::description("A wood laminate material with smudges and a dirt layer that features infinite tiling "),
+	::anno::key_words(string[]("aec", "wood", "oak", "laminate", "floor", "polished", "artificial", "infinite tiling", "dust", "dirt", "brown", "warm")),
+	::anno::thumbnail("./.thumbs/Laminate_Oak.Laminate_Oak_Dirty.png"),
+	::anno::copyright_notice(COPYRIGHT)
+]]
+ = Laminate_Oak(
+	enable_infinite_tiling: false,
+	wood_brightness:		0.7f,
+	wood_fiber_roughness: 1.0f,
+	oak_bump_factor: 1.0f,
+	smudges_weight: 0.8f,
+	smudges_roughness: 0.75f,
+	dirt_weight: 0.85f,
+	texture_translate: float2(0.0f),
+	texture_rotate: 0.0f,
+	texture_scale: float2(1.0),
+	uv_space_index: 0
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
