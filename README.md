@@ -6,4 +6,4 @@
 - Fixed position 
 - Fixed Camera but not random 
 - Fixed Lightning and light parameters 
-- Change background material ?
+- Changed background materials
