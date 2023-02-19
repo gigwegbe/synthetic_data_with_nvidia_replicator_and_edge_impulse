@@ -13,7 +13,7 @@ with rep.new_layer():
 
 
   # Camera paramters
-    cam_position = (46, 200 , 25) 
+    cam_position = (46, 200 , 78) 
     cam_position2 = (46, 120 , 25) 
     cam_position_random = rep.distribution.uniform((0,181,0), (0, 300, 0))
     cam_rotation = (-60,0,0) 
@@ -26,7 +26,7 @@ with rep.new_layer():
     focus_distance_random = rep.distribution.normal(500.0, 100)
 
     # Cultery path 
-    current_cultery = SPOON_SMALL_USD # Change the item here e.g KNIFE_USD
+    current_cultery = KNIFE_USD # Change the item here e.g KNIFE_USD
     output_path = current_cultery.split(".")[0].split("/")[-1]
 
     def rect_lights(num=1):
@@ -92,7 +92,7 @@ with rep.new_layer():
     writer.initialize(output_dir=f"{local_path}/data/normal_60/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
-    with rep.trigger.on_frame(num_frames=50):
+    with rep.trigger.on_frame(num_frames=25):
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)
