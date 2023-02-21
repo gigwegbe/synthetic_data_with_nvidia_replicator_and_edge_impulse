@@ -67,7 +67,7 @@ with rep.new_layer():
       
         with instances:
             rep.modify.pose(
-                position=rep.distribution.uniform((0, 76.3651, 0), (90, 76.3651, 42)),
+                position=rep.distribution.uniform((0, 86.3651, 0), (90, 86.3651, 42)),
                 rotation=rep.distribution.uniform((-90,-180, -90), (90, 180, 90)),
             )
         return instances.node
