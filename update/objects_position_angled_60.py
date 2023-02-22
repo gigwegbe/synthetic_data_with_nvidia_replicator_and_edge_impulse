@@ -89,7 +89,7 @@ with rep.new_layer():
 
     # Initialize and attach writer
     writer = rep.WriterRegistry.get("BasicWriter")
-    writer.initialize(output_dir=f"{local_path}/data/normal_60/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
+    writer.initialize(output_dir=f"{local_path}/data/angled_60/{output_path}", rgb=True, bounding_box_2d_tight=False, semantic_segmentation=False)
     writer.attach([render_product, render_product2])
 
     with rep.trigger.on_frame(num_frames=25):
