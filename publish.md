@@ -8,9 +8,9 @@ Created By:
 [George Igwegbe](https://www.linkedin.com/in/george-igwegbe/)
 
 Public Project Link:
-[GitHub]() | [Edge Impulse]()
+[GitHub](https://github.com/gigwegbe/synthetic_data_with_nvidia_replicator_and_edge_impulse) | [Edge Impulse](https://studio.edgeimpulse.com/public/187851/latest)
 
-![Header](assets/1_header.jpg)
+![Header](media_assets/)
 
 ## Story
 
