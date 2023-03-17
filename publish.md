@@ -150,19 +150,19 @@ rep.orchestrator.run()
 To ensure we generated photorealistic images, we switched to RTXinteractive(Path Tracing) mode, which gave high-fidelity renderings.
 
 Data generation process |
---- | ---
+--- |
 ![](media_assets/data_generation_process2.gif) |
 
 
 ## Data Distribution and Model Building
 
 Data Distribution of different items |
---- | ---
+--- | 
 ![](media_assets/data_distribution.avif) |
 Following the data-centric philosophy, We generated three versions of the dataset. The first version, V1, consists of generated images normal to the camera position, and V2 represents images generated at an angle of 60 degrees to the camera position with a mahogany table top. V3 comprises images normal to the camera position while the cutlery were suspended in space.
 
 V1 - Normal to the object |
---- | ---
+--- | 
 ![](media_assets/v1.avif) |
 
 <table>
@@ -225,27 +225,27 @@ Version Control in Edge Impulse |
 We used the Edge Impulse CLI tool to evaluate the model's accuracy by downloading, building and running the model locally. A Logitech C920 webcam streamed the live video of objects on a table from 50 cm to 80 cm from the camera. The position of the camera remains fixed during the experiment. The clips below show that the trained model does not generalize well to real-world objects. Thus we needed to improve the model by uploading, annotating and training the model with the V2 dataset.
 
 V1 failure - model failed to identify objects |
---- | ---
+--- | 
 ![](media_assets/v1_1.gif) |
 
 
 We observed improved model performance when trained with the V2 dataset. The model could identify various objects distinctly, although the model failed when we changed the objects' orientations. Thus, we trained the model with the remaining V3 dataset to mitigate these issues and increase other hyperparameters, such as epochs from 500 to 2000. We also tested the performance of our object detector on real objects with different background textures, and the model performed well in these conditions.
 V2 success - model can identify objects |
---- | ---
+--- |
 ![](media_assets/v2_1.gif) |
 
 V2 failure - model failed to identify objects in different orientations |
---- | ---
+--- |
 ![](media_assets/v2_2.gif) |
 
 
 After several cycles of iterating over various hyperparameters, we got a model that generalizes well across different orientations.
 V3 success - model can identify objects in different orientations   |
---- | ---
+--- | 
 ![](media_assets/v3_2.gif) |
 
 V3 success - model can identify different materials |
---- | ---
+--- | 
 ![](media_assets/different_material.gif) |
 
 
