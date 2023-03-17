@@ -13,14 +13,14 @@ with rep.new_layer():
 
 
     # Camera paramters
-    cam_position = (-131,200,-134)
-    cam_position2 = (-131,120,-134)
+    cam_position = (46, 200 , 25) 
+    cam_position2 = (46, 120 , 25) 
     cam_position_random = rep.distribution.uniform((0,181,0), (0, 300, 0))
-    cam_rotation = (-90,0,0) #(-45,0,0)
-    focus_distance = 120
-    focus_distance2 = 72
-    focal_length = 19.1
-    focal_length2 = 7.5
+    cam_rotation = (-90,0,0) 
+    focus_distance = 114 
+    focus_distance2 = 39.1 
+    focal_length = 27
+    focal_length2 = 18.5
     f_stop = 1.8
     f_stop2 = 1.8
     focus_distance_random = rep.distribution.normal(500.0, 100)
@@ -29,35 +29,35 @@ with rep.new_layer():
     current_cultery = SPOON_SMALL_USD # Change the item here e.g KNIFE_USD
     output_path = current_cultery.split(".")[0].split("/")[-1]
 
-    def rect_lights(num=2):
+    def rect_lights(num=1):
         lights = rep.create.light(
             light_type="rect",
             temperature=rep.distribution.normal(6500, 500),
             intensity=rep.distribution.normal(0, 5000),
-            position=(-131,150,-134),
+            position=(45,110,0),
             rotation=(-90,0,0),
             scale=rep.distribution.uniform(50, 100),
             count=num
         )
         return lights.node 
     
-    def dome_lights(num=1):
+    def dome_lights(num=3):
         lights = rep.create.light(
             light_type="dome",
             temperature=rep.distribution.normal(6500, 500),
             intensity=rep.distribution.normal(0, 1000),
-            position=(0,0,0),
-            rotation=(270,0,0),
+            position=(45,120,18),
+            rotation=(225,0,0),
             count=num
         )
-        return lights.node 
+        return lights.node      
 
     def table():
         table = rep.create.from_usd(TABLE_USD, semantics=[('class', 'table')])
 
         with table:
             rep.modify.pose(
-                position=(-135.39745, 0, -140.25696),
+                position=(46, -0.0, 20),
                 rotation=(0,-90,-90),
             )
         return table 
@@ -68,7 +68,7 @@ with rep.new_layer():
 
         with instances:
             rep.modify.pose(
-                position=rep.distribution.uniform((-212, 76.2, -187), (-62, 76.2, -94)),
+                position=rep.distribution.uniform((0, 76.3651, 0), (90, 76.3651, 42)),
                 rotation=rep.distribution.uniform((-90,-180, 0), (-90, 180, 0)),
             )
         return instances.node
@@ -96,7 +96,7 @@ with rep.new_layer():
         rep.randomizer.table()
         rep.randomizer.rect_lights(1)
         rep.randomizer.dome_lights(1)
-        rep.randomizer.cutlery_props(15)
+        rep.randomizer.cutlery_props(5)
 
     # Run the simulation graph
     rep.orchestrator.run()
