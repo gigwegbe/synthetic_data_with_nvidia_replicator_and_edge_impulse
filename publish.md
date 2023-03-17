@@ -24,13 +24,14 @@ We wanted to replicate the [object detection](https://www.youtube.com/watch?v=Vw
 
 Computer vision tasks such as classification, object detection, and segmentation require a large-scale dataset. Data collected from some real-world applications tend to be narrow and less diverse, often collected from a single environment, and sometimes is unchanged and stays the same for the most time. In addition, data collected from a single field tend to have fewer examples of tail-end scenarios and rare events, and we cannot easily replicate these situations in the real world.
 
-![Header](media_assets/tesla_ai_day.avif)
+![Andrej Karpathy's presentation -  (Image source: Tesla AI Day, 2021)](media_assets/tesla_ai_day.avif)
+
 
 Consequently, models trained in a single domain are brittle and often fail when deployed in another environment; thus, it requires another training cycle to adapt to the new environment. It raises the question, how can we efficiently and cheaply collect generalized data across several domains? A simple unreasonable effective solution is Domain Randomization, which varies the texture and colour of the foreground object, the background image, the number of lights in the scene, the pose of the lights, and the camera position etc. Domain randomization can further improve the variability in the texture of synthetic data of rare events generated in the simulator.
 
 > The purpose of domain randomization is to provide enough simulated variability at training time such that at test time the model is able  to generalize to real-world data.” - Tobin et al, Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real  World, 2017
 
-![Header](media_assets/research_domain_rand.avif)
+![Domain Randomization for Transferring Deep Neural Networks . (Image source: Tobin et al, 2017)](media_assets/research_domain_rand.avif)
 
 Nvidia Replicator enables us to perform Domain Randomization. The Replicator is one module within the Omniverse family, and it offers tools and workflow to generate data for various computer vision and non-visual tasks. The Replicator is a highly interoperable tool that integrates with over 40+ modelling/rendering applications across different verticals. The seamless integration is possible thanks to Pixar's Universal Scene Description(USD), which serves as a protocol for various applications such as Blender, 3DMax, Maya, Revit, C4D etc., to work with the Nvidia Replicator.
 
