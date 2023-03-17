@@ -23,21 +23,27 @@ We wanted to replicate the [object detection](https://www.youtube.com/watch?v=Vw
 ## Why Synthetic Data?
 
 Computer vision tasks such as classification, object detection, and segmentation require a large-scale dataset. Data collected from some real-world applications tend to be narrow and less diverse, often collected from a single environment, and sometimes is unchanged and stays the same for the most time. In addition, data collected from a single field tend to have fewer examples of tail-end scenarios and rare events, and we cannot easily replicate these situations in the real world.
+Andrej Karpathy's presentation - source: Tesla AI Day, 2021 |
+--- | 
+![](media_assets/tesla_ai_day.avif) |
 
-![Andrej Karpathy's presentation -  (Image source: Tesla AI Day, 2021)](media_assets/tesla_ai_day.avif)
 
 
 Consequently, models trained in a single domain are brittle and often fail when deployed in another environment; thus, it requires another training cycle to adapt to the new environment. It raises the question, how can we efficiently and cheaply collect generalized data across several domains? A simple unreasonable effective solution is Domain Randomization, which varies the texture and colour of the foreground object, the background image, the number of lights in the scene, the pose of the lights, and the camera position etc. Domain randomization can further improve the variability in the texture of synthetic data of rare events generated in the simulator.
 
 > The purpose of domain randomization is to provide enough simulated variability at training time such that at test time the model is able  to generalize to real-world data.” - Tobin et al, Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real  World, 2017
 
-![Domain Randomization for Transferring Deep Neural Networks . (Image source: Tobin et al, 2017)](media_assets/research_domain_rand.avif)
+Domain Randomization for Transferring Deep Neural Networks - source: Tobin et al, 2017) |
+--- | 
+![](media_assets/research_domain_rand.avif) |
+
+
 
 Nvidia Replicator enables us to perform Domain Randomization. The Replicator is one module within the Omniverse family, and it offers tools and workflow to generate data for various computer vision and non-visual tasks. The Replicator is a highly interoperable tool that integrates with over 40+ modelling/rendering applications across different verticals. The seamless integration is possible thanks to Pixar's Universal Scene Description(USD), which serves as a protocol for various applications such as Blender, 3DMax, Maya, Revit, C4D etc., to work with the Nvidia Replicator.
 
 ## Data-Centric Workflow
 Traditional machine learning workflow is often model-centric, focusing more on the model's development by iteratively improving the algorithm design, etc. In this project, we chose the Data-centric approach, where we fixed the model and iteratively improved the quality of the generated dataset. This approach is more robust since we know our model is as good as the dataset. This method hence systematically changes the dataset performance on an AI task. At its core, it is thinking about ML in terms of data, not the model.
-![Header](media_assets/workflow.avif)
+![](media_assets/workflow.avif)
 
 ## Requirements
 - Nvidia Omniverse Replicator 
@@ -251,7 +257,7 @@ V3 success - model can identify different materials |
 
 
 The core idea behind the data-centric approach to solving ML problems is to create more data around the failure points of the model. We improved the model by iteratively improving the data generation, especially in areas where the model had previously failed.
-![Header](media_assets/variation_position.gif)
+![](media_assets/variation_position.gif)
 
 
 ## Conclusion
