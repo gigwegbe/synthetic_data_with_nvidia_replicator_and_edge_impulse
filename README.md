@@ -229,7 +229,7 @@ We uploaded the generated images to Edge Impulse Studio, where we annotated the 
  </table>
 
 Version Control in Edge Impulse |
---- | ---
+--- |
 ![](media_assets/version_control.gif) |
 
 
