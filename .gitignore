@@ -3,6 +3,7 @@
 others/
 data/
 .DS_Store
+/media_assets_old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
