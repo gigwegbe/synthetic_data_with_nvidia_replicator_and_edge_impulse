@@ -43,7 +43,12 @@ Nvidia Replicator enables us to perform Domain Randomization. The Replicator is 
 
 ## Data-Centric Workflow
 Traditional machine learning workflow is often model-centric, focusing more on the model's development by iteratively improving the algorithm design, etc. In this project, we chose the Data-centric approach, where we fixed the model and iteratively improved the quality of the generated dataset. This approach is more robust since we know our model is as good as the dataset. This method hence systematically changes the dataset performance on an AI task. At its core, it is thinking about ML in terms of data, not the model.
-![](media_assets/workflow.avif)
+
+Data-Centric Workflow |
+--- | 
+![](media_assets/workflow.avif) |
+
+
 
 ## Requirements
 - Nvidia Omniverse Replicator 
@@ -54,14 +59,14 @@ Traditional machine learning workflow is often model-centric, focusing more on t
 
 Nvidia Omniverse Replicator is a computation-intensive application requiring a moderate-size GPU and decent RAM. My hardware setup consists of 32GB RAM, 1TB storage space and 8GB GPU with an Intel i9 processor.
 
-Hardware Spec1 | Hardware Spec 2
+Hardware Specification | Hardware Specification
 --- | ---
 ![](media_assets/hardware_spec.avif) | ![](media_assets/hardware_spec2.avif)
 
 
 The application can run on both Windows and Linux operating systems. For this experiment, we used Ubuntu 20.04 LTS distro, given Ubuntu 18.04 is no longer supported by Nvidia Omniverse as of November 2022. In addition, we selected the appropriate Nvidia driver, v510.108.03 and installed it on a Linux machine.
 
-Software Spec1 | Software Spec2
+Software Specification | Software Specification
 --- | ---
 ![](media_assets/software_spec.avif) | ![](media_assets/software_spec2.avif)
 
@@ -77,7 +82,7 @@ Rectangular Light | Dome Light
 --- | --- |
 ![](media_assets/light_rect.avif) | ![](media_assets/dome_light.avif)
 
-Lightning plays a crucial role in data generation. There are different built-in lighting types in the Nvidia replicator. We choose two rectangular lights and a dome light since they give us better lighting options and capabilities for generating photorealistic images. The rectangular light emulates light generated from a panel, and the dome light lets you dynamically lighten the entire scene. We randomized some light parameters such as temperature and intensity, and both parameters were sampled from a normal distribution. In addition, the scale parameter was sampled from a uniform distribution while keeping the rotation and position of the lights fixed.
+Lightning plays a crucial role in data generation. There are different built-in lighting types in the Nvidia replicator. We choose two rectangular lights and a dome light since they give us better lighting options and capabilities for generating photorealistic images. The rectangular light emulates light generated from a panel, and the dome light lets you dynamically lighten the entire scene. We randomized some light parameters such as temperature and intensity, and both parameters were sampled from a <strong>normal distribution</strong>. In addition, the scale parameter was sampled from a <strong>uniform distribution</strong> while keeping the rotation and position of the lights fixed.
 ```python
 # Lightning setup for Rectangular light and Dome light 
 
@@ -104,7 +109,7 @@ def dome_lights(num=1):
     )
 return lights.node
 ```
-We fixed the position and rotation, selected the tabletop materials, chose an additional Mahogany material, and alternated the material in the data generation process.
+We fixed the position and rotation, selected the tabletop materials, chose an additional <strong>Mahogany</strong> material, and alternated the material in the data generation process.
 ```python 
 # Import and position the table object
 
@@ -154,7 +159,7 @@ with rep.trigger.on_frame(num_frames=50):
 # Run the simulation graph
 rep.orchestrator.run()
 ```
-To ensure we generated photorealistic images, we switched to RTXinteractive(Path Tracing) mode, which gave high-fidelity renderings.
+To ensure we generated photorealistic images, we switched to <strong>RTXinteractive(Path Tracing)</strong> mode, which gave high-fidelity renderings.
 
 Data generation process |
 --- |
@@ -166,7 +171,7 @@ Data generation process |
 Data Distribution of different items |
 --- | 
 ![](media_assets/data_distribution.avif) |
-Following the data-centric philosophy, We generated three versions of the dataset. The first version, V1, consists of generated images normal to the camera position, and V2 represents images generated at an angle of 60 degrees to the camera position with a mahogany table top. V3 comprises images normal to the camera position while the cutlery were suspended in space.
+Following the data-centric philosophy, We generated three versions of the dataset. The first version, <strong>V1</strong>, consists of generated images normal to the camera position, and <strong>V2</strong> represents images generated at an angle of 60 degrees to the camera position with a mahogany table top. <strong>V3</strong> comprises images normal to the camera position while the cutlery were suspended in space.
 
 V1 - Normal to the object |
 --- | 
@@ -200,15 +205,17 @@ V1 - Normal to the object |
 
 <table>
   <tr>
-     <td>Holiday Mention</td>
-     <td>Present day in purple and selected day in pink</td>
+     <td>Data Labeler </td>
+     <td>Data Annotation</td>
   </tr>
   <tr>
     <td><img src="media_assets/annotating_image.png"></td>
     <td><img src="media_assets/image_in_queue.png"></td>
   </tr>
  </table>
-We uploaded the generated images to Edge Impulse Studio, where we annotated the dataset into different classes. We carefully annotated each dataset version and trained using the Yolov5 object detection model. We tried a couple of input sizes ranging from 320, 512 and 1024 pixels before settling with 320. Edge Impulse provided an excellent version control system for models, which enabled us to track model performance across different dataset versions and hyperparameters.
+
+
+We uploaded the generated images to Edge Impulse Studio, where we annotated the dataset into different classes. We carefully annotated each dataset version and trained using the <strong>Yolov5</strong> object detection model. We tried a couple of input sizes ranging from 320, 512 and 1024 pixels before settling with <strong>320</strong>. Edge Impulse provided an excellent version control system for models, which enabled us to track model performance across different dataset versions and hyperparameters.
 
  <table>
   <tr>
