@@ -23,7 +23,7 @@ We wanted to replicate the [object detection](https://www.youtube.com/watch?v=Vw
 ## Why Synthetic Data?
 
 Computer vision tasks such as classification, object detection, and segmentation require a large-scale dataset. Data collected from some real-world applications tend to be narrow and less diverse, often collected from a single environment, and sometimes is unchanged and stays the same for the most time. In addition, data collected from a single field tend to have fewer examples of tail-end scenarios and rare events, and we cannot easily replicate these situations in the real world.
-Andrej Karpathy's presentation - source: Tesla AI Day, 2021 |
+Andrej Karpathy's presentation - (source: Tesla AI Day, 2021) |
 --- | 
 ![](media_assets/tesla_ai_day.avif) |
 
