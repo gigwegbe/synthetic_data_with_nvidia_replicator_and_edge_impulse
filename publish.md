@@ -60,14 +60,14 @@ Software Spec1 | Software Spec2
 
 ## Experiment Setup and Data Generation
 The environment for the experiment consists of movable and immovable objects (dynamic and static positioning objects). The immovable object consists of Lights, a Table and two Cameras. At the same time, the movable objects are the cutlery which is a spoon, fork and knife. We will use domain randomization to alter the properties of some of the movable and immovable objects. Assets which include objects and scenes are represented in the Replicator as USD.
-<!-- ![Header](media_assets/experiment_setup.avif) -->
 
 Experimental Setup |
---- | ---
+--- | 
 ![](media_assets/experiment_setup.avif) |
+
 Every object in Omniverse Replicator is represented as USD. A 3D model file with varying extensions such as obj, fbx, and glif can be imported into the Replicator using Nvidia Omniverse's CAD Importer extension. The extension converts the 3D files into USD. We imported our assets (Table, knife, spoon and fork) into the simulator by specifying the path of the assets.
 Rectangular Light | Dome Light
---- | ---
+--- | --- |
 ![](media_assets/light_rect.avif) | ![](media_assets/dome_light.avif)
 
 Lightning plays a crucial role in data generation. There are different built-in lighting types in the Nvidia replicator. We choose two rectangular lights and a dome light since they give us better lighting options and capabilities for generating photorealistic images. The rectangular light emulates light generated from a panel, and the dome light lets you dynamically lighten the entire scene. We randomized some light parameters such as temperature and intensity, and both parameters were sampled from a normal distribution. In addition, the scale parameter was sampled from a uniform distribution while keeping the rotation and position of the lights fixed.
