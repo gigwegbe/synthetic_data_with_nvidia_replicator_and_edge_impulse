@@ -44,7 +44,7 @@ Nvidia Replicator enables us to perform Domain Randomization. The Replicator is 
 ## Data-Centric Workflow
 Traditional machine learning workflow is often model-centric, focusing more on the model's development by iteratively improving the algorithm design, etc. In this project, we chose the Data-centric approach, where we fixed the model and iteratively improved the quality of the generated dataset. This approach is more robust since we know our model is as good as the dataset. This method hence systematically changes the dataset performance on an AI task. At its core, it is thinking about ML in terms of data, not the model.
 
-Data-Centric Workflow |
+Data generation and model building workflow |
 --- | 
 ![](media_assets/workflow.avif) |
 
